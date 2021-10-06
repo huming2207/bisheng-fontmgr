@@ -54,7 +54,7 @@ public:
         float scale = ctx->scale;
 
         int width = 0, height = 0;
-        if (stbtt_GetCodepointBitmapNoCpy(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
+        if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
             ESP_LOGI(TAG, "bitmap used %lld us", esp_timer_get_time() - ts);
             return ctx->font_buf;
         } else {

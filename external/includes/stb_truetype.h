@@ -884,7 +884,7 @@ STBTT_DEF unsigned char *stbtt_GetCodepointBitmapSubpixel(const stbtt_fontinfo *
 // the same as stbtt_GetCodepoitnBitmap, but you can specify a subpixel
 // shift for the character
 
-STBTT_DEF bool stbtt_GetCodepointBitmapSubpixelNoCpy(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff);
+STBTT_DEF bool stbtt_GetCodepointBitmapSubpixelPtr(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff);
 // the same as stbtt_GetCodepoitnBitmap, but you can specify a subpixel
 // shift for the character
 
@@ -917,7 +917,7 @@ STBTT_DEF void stbtt_GetCodepointBitmapBoxSubpixel(const stbtt_fontinfo *font, i
 // on glyph indices instead of Unicode codepoints (for efficiency)
 STBTT_DEF unsigned char *stbtt_GetGlyphBitmap(const stbtt_fontinfo *info, float scale_x, float scale_y, int glyph, int *width, int *height, int *xoff, int *yoff);
 STBTT_DEF unsigned char *stbtt_GetGlyphBitmapSubpixel(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int glyph, int *width, int *height, int *xoff, int *yoff);
-STBTT_DEF bool stbtt_GetGlyphBitmapSubpixelNoCpy(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int glyph, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff);
+STBTT_DEF bool stbtt_GetGlyphBitmapSubpixelPtr(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int glyph, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff);
 STBTT_DEF void stbtt_MakeGlyphBitmap(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, int glyph);
 STBTT_DEF void stbtt_MakeGlyphBitmapSubpixel(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, float shift_x, float shift_y, int glyph);
 STBTT_DEF void stbtt_MakeGlyphBitmapSubpixelPrefilter(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, float shift_x, float shift_y, int oversample_x, int oversample_y, float *sub_x, float *sub_y, int glyph);
@@ -3755,7 +3755,7 @@ STBTT_DEF unsigned char *stbtt_GetGlyphBitmapSubpixel(const stbtt_fontinfo *info
    return gbm.pixels;
 }
 
-STBTT_DEF bool stbtt_GetGlyphBitmapSubpixelNoCpy(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int glyph, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
+STBTT_DEF bool stbtt_GetGlyphBitmapSubpixelPtr(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int glyph, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
 {
     int ix0,iy0,ix1,iy1;
     stbtt__bitmap gbm;
@@ -3831,9 +3831,9 @@ STBTT_DEF unsigned char *stbtt_GetCodepointBitmapSubpixel(const stbtt_fontinfo *
    return stbtt_GetGlyphBitmapSubpixel(info, scale_x, scale_y,shift_x,shift_y, stbtt_FindGlyphIndex(info,codepoint), width,height,xoff,yoff);
 }
 
-STBTT_DEF bool stbtt_GetCodepointBitmapSubpixelNoCpy(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
+STBTT_DEF bool stbtt_GetCodepointBitmapSubpixelPtr(const stbtt_fontinfo *info, float scale_x, float scale_y, float shift_x, float shift_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
 {
-    return stbtt_GetGlyphBitmapSubpixelNoCpy(info, scale_x, scale_y,shift_x,shift_y, stbtt_FindGlyphIndex(info,codepoint), out_buf, width,height,xoff,yoff);
+    return stbtt_GetGlyphBitmapSubpixelPtr(info, scale_x, scale_y,shift_x,shift_y, stbtt_FindGlyphIndex(info,codepoint), out_buf, width,height,xoff,yoff);
 }
 
 STBTT_DEF void stbtt_MakeCodepointBitmapSubpixelPrefilter(const stbtt_fontinfo *info, unsigned char *output, int out_w, int out_h, int out_stride, float scale_x, float scale_y, float shift_x, float shift_y, int oversample_x, int oversample_y, float *sub_x, float *sub_y, int codepoint)
@@ -3846,9 +3846,9 @@ STBTT_DEF void stbtt_MakeCodepointBitmapSubpixel(const stbtt_fontinfo *info, uns
    stbtt_MakeGlyphBitmapSubpixel(info, output, out_w, out_h, out_stride, scale_x, scale_y, shift_x, shift_y, stbtt_FindGlyphIndex(info,codepoint));
 }
 
-STBTT_DEF bool stbtt_GetCodepointBitmapNoCpy(const stbtt_fontinfo *info, float scale_x, float scale_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
+STBTT_DEF bool stbtt_GetCodepointBitmapPtr(const stbtt_fontinfo *info, float scale_x, float scale_y, int codepoint, unsigned char *out_buf, int *width, int *height, int *xoff, int *yoff)
 {
-    return stbtt_GetCodepointBitmapSubpixelNoCpy(info, scale_x, scale_y, 0.0f,0.0f, codepoint, out_buf, width,height,xoff,yoff);
+    return stbtt_GetCodepointBitmapSubpixelPtr(info, scale_x, scale_y, 0.0f,0.0f, codepoint, out_buf, width,height,xoff,yoff);
 }
 
 STBTT_DEF unsigned char *stbtt_GetCodepointBitmap(const stbtt_fontinfo *info, float scale_x, float scale_y, int codepoint, int *width, int *height, int *xoff, int *yoff)
