@@ -51,17 +51,15 @@ public:
         }
 
         auto *ctx = (font_view *)font->user_data;
-
         float scale = ctx->scale;
 
         int width = 0, height = 0;
-        uint8_t *buf = stbtt_GetCodepointBitmap(&ctx->stb_font, scale, scale, (int)unicode_letter, &width, &height, nullptr, nullptr);
-
-        memcpy(ctx->font_buf, buf, width * height);
-        stbtt_FreeBitmap(buf, nullptr);
-        ESP_LOGI(TAG, "bitmap used %lld us", esp_timer_get_time() - ts);
-
-        return ctx->font_buf;
+        if (stbtt_GetCodepointBitmapNoCpy(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
+            ESP_LOGI(TAG, "bitmap used %lld us", esp_timer_get_time() - ts);
+            return ctx->font_buf;
+        } else {
+            return nullptr;
+        }
     }
 
 public:
