@@ -5,6 +5,10 @@
 #include <esp_log.h>
 #include <lvgl.h>
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include <stb_truetype.h>
+
+
 class font_view
 {
 public:
