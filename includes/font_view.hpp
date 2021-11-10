@@ -14,7 +14,6 @@ class font_view
 public:
     static bool get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t *dsc_out, uint32_t unicode_letter, uint32_t unicode_letter_next)
     {
-        int64_t ts = esp_timer_get_time();
         if (font == nullptr || font->user_data == nullptr) {
             return false;
         }
@@ -34,16 +33,18 @@ public:
         int adv_w = 0;
         int left_side_bearing = 0;
         stbtt_GetCodepointHMetrics(&ctx->stb_font, (int)unicode_letter, &adv_w, &left_side_bearing);
+
+        int kern = stbtt_GetCodepointKernAdvance(&ctx->stb_font, (int)unicode_letter, (int)unicode_letter_next);
         adv_w = (int)(roundf(adv_w * scale));
+        kern = (int)(roundf(kern * scale));
         left_side_bearing = (int)(roundf((left_side_bearing * scale)));
 
-        dsc_out->adv_w = adv_w;
+        dsc_out->adv_w = adv_w + kern;
         dsc_out->box_h = (uint16_t)(y1 - y0);
         dsc_out->box_w = (uint16_t)(x1 - x0);
         dsc_out->ofs_x = (int16_t)left_side_bearing;
         dsc_out->ofs_y = (int16_t)(y1 * -1);
         dsc_out->bpp = 8;
-        ESP_LOGI(TAG, "dsc used %lld us", esp_timer_get_time() - ts);
         return true;
     }
 
@@ -59,7 +60,6 @@ public:
 
         int width = 0, height = 0;
         if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
-            ESP_LOGI(TAG, "bitmap used %lld us", esp_timer_get_time() - ts);
             return ctx->font_buf;
         } else {
             return nullptr;
