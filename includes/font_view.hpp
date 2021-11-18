@@ -50,7 +50,6 @@ public:
 
     static const uint8_t *get_glyph_bitmap_handler(const lv_font_t *font, uint32_t unicode_letter)
     {
-        int64_t ts = esp_timer_get_time();
         if (font == nullptr || font->user_data == nullptr) {
             return nullptr;
         }
@@ -81,7 +80,9 @@ public:
             return ESP_FAIL;
         }
 
-        font_buf = (uint8_t *)malloc(_height_px * _height_px);
+        ESP_LOGD(TAG, "Allocating font buffer size %u bytes", _height_px * _height_px);
+
+        font_buf = (uint8_t *)heap_caps_malloc(_height_px * _height_px, MALLOC_CAP_SPIRAM);
         if (font_buf == nullptr) {
             ESP_LOGE(TAG, "Failed to allocate font buffer");
             return ESP_ERR_NO_MEM;
