@@ -468,7 +468,7 @@ int main(int arg, char **argv)
    // #define your own functions "STBTT_malloc" / "STBTT_free" to avoid malloc.h
    #ifndef STBTT_malloc
    #include <stdlib.h>
-   #define STBTT_malloc(x,u)  ((void)(u),malloc(x))
+   #define STBTT_malloc(x,u)  ((void)(u),heap_caps_malloc(x, MALLOC_CAP_SPIRAM))
    #define STBTT_free(x,u)    ((void)(u),free(x))
    #endif
 
