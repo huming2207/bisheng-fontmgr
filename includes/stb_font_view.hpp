@@ -9,7 +9,7 @@
 #include <stb_truetype.h>
 
 
-class font_view
+class stb_font_view
 {
 public:
     static bool get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t *dsc_out, uint32_t unicode_letter, uint32_t unicode_letter_next)
@@ -18,7 +18,7 @@ public:
             return false;
         }
 
-        auto *ctx = (font_view *)font->user_data;
+        auto *ctx = (stb_font_view *)font->user_data;
 
         if (dsc_out == nullptr) return false;
         float scale = ctx->scale;
@@ -54,7 +54,7 @@ public:
             return nullptr;
         }
 
-        auto *ctx = (font_view *)font->user_data;
+        auto *ctx = (stb_font_view *)font->user_data;
         float scale = ctx->scale;
 
         int width = 0, height = 0;
@@ -74,6 +74,7 @@ public:
         lv_font.get_glyph_bitmap = get_glyph_bitmap_handler;
         lv_font.user_data = this;
         lv_font.base_line = 0;
+        lv_font.subpx = LV_FONT_SUBPX_NONE; // This has to be NONE otherwise it will show nothing...
 
         if (stbtt_InitFont(&stb_font, buf, 0) < 1) {
             ESP_LOGE(TAG, "Load font failed");
