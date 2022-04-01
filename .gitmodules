@@ -1,3 +1,0 @@
-[submodule "external/libschrift"]
-	path = external/libschrift
-	url = https://github.com/tomolt/libschrift
