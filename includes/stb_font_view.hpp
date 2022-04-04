@@ -28,7 +28,7 @@ public:
         }
 
         int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
-        stbtt_GetCodepointBitmapBox(&ctx->stb_font, (int)unicode_letter, scale, scale, &x0, &y0, &x1, &y1);
+        stbtt_GetCodepointBitmapBox(&ctx->stb_font, (int)unicode_letter, scale * 3, scale, &x0, &y0, &x1, &y1);
 
         int adv_w = 0;
         int left_side_bearing = 0;
@@ -58,7 +58,7 @@ public:
         float scale = ctx->scale;
 
         int width = 0, height = 0;
-        if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
+        if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale * 3, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
             return ctx->font_buf;
         } else {
             return nullptr;
@@ -74,16 +74,21 @@ public:
         lv_font.get_glyph_bitmap = get_glyph_bitmap_handler;
         lv_font.user_data = this;
         lv_font.base_line = 0;
+
+#ifndef CONFIG_LV_USE_FONT_SUBPX
         lv_font.subpx = LV_FONT_SUBPX_NONE; // This has to be NONE otherwise it will show nothing...
+#else
+        lv_font.subpx = LV_FONT_SUBPX_BOTH;
+#endif
 
         if (stbtt_InitFont(&stb_font, buf, 0) < 1) {
             ESP_LOGE(TAG, "Load font failed");
             return ESP_FAIL;
         }
 
-        ESP_LOGD(TAG, "Allocating font buffer size %u bytes", _height_px * _height_px);
+        ESP_LOGD(TAG, "Allocating font buffer size %u bytes", _height_px * _height_px * 3);
 
-        font_buf = (uint8_t *)heap_caps_malloc(_height_px * _height_px, MALLOC_CAP_SPIRAM);
+        font_buf = (uint8_t *)heap_caps_malloc(_height_px * _height_px * 3, MALLOC_CAP_SPIRAM);
         if (font_buf == nullptr) {
             ESP_LOGE(TAG, "Failed to allocate font buffer");
             return ESP_ERR_NO_MEM;
