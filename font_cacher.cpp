@@ -34,7 +34,7 @@ esp_err_t font_cacher::init(size_t buf_size, size_t glyph_cnt)
     return ESP_OK;
 }
 
-uint32_t font_cacher::reg_instance()
+uint32_t font_cacher::get_new_renderer_id()
 {
     if (unlikely(instance_ctr == UINT32_MAX)) {
         instance_ctr = 0;

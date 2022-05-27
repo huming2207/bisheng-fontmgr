@@ -35,7 +35,7 @@ private:
 
 public:
     esp_err_t init(size_t buf_size, size_t glyph_cnt);
-    uint32_t reg_instance();
+    uint32_t get_new_renderer_id();
     bool has_cache(uint32_t renderer_id, uint32_t codepoint);
     esp_err_t get_cache(uint32_t renderer_id, uint32_t codepoint, glyph_item *out);
     esp_err_t add_cache(uint32_t renderer_id, uint32_t codepoint, uint8_t *buf_in, size_t buf_sz);
