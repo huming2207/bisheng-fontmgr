@@ -5,10 +5,13 @@
 #include <esp_log.h>
 #include <lvgl.h>
 
+#include "stbtt_mempool.h" // Make sure this include is BEFORE stb_truetype
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
 #include "font_disk_cacher.hpp"
+
+#define STBTT_MEM_INCREMENT_SIZE (131072 * 2)
 
 class font_view
 {
@@ -102,10 +105,25 @@ public:
     ~font_view()
     {
         free((void *) name);
+        free((void *) font_buf);
+
+        if (tlsf_pool != nullptr) {
+            stbtt_tlsf_remove_pool(stbtt_mem_tlsf, tlsf_pool);
+        }
+
+        if (mem_pool != nullptr) {
+            free((void *) mem_pool);
+        }
     }
 
     esp_err_t init(const uint8_t *buf, size_t len, uint8_t _height_px)
     {
+        auto ret = stbtt_mem_init();
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialise memory pool");
+            return ret;
+        }
+
         height_px = _height_px;
         lv_font.line_height = height_px;
         lv_font.get_glyph_dsc = get_glyph_dsc_handler;
@@ -121,7 +139,7 @@ public:
 
         if (!disable_cache) {
             auto &cache = font_disk_cacher::instance();
-            auto ret = cache.add_renderer(name, _height_px);
+            ret = cache.add_renderer(name, _height_px);
             if (ret != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to create renderer cache namespace");
                 return ret;
@@ -137,6 +155,18 @@ public:
         }
 
         memset(font_buf, 0, _height_px * _height_px);
+
+        mem_pool = (uint8_t *)heap_caps_aligned_calloc(4, STBTT_MEM_INCREMENT_SIZE, 1, MALLOC_CAP_SPIRAM);
+        if (mem_pool == nullptr) {
+            ESP_LOGE(TAG, "Failed to allocate heap buffer");
+            return ESP_ERR_NO_MEM;
+        } else {
+            tlsf_pool = stbtt_tlsf_add_pool(stbtt_mem_tlsf, mem_pool, STBTT_MEM_INCREMENT_SIZE);
+            if (tlsf_pool == nullptr) {
+                ESP_LOGE(TAG, "Heap pool add fail");
+                return ESP_ERR_NO_MEM;
+            }
+        }
 
         scale = stbtt_ScaleForPixelHeight(&stb_font, height_px);
         return ESP_OK;
@@ -159,6 +189,8 @@ private:
     float scale = 0;
     lv_font_t lv_font = {};
     stbtt_fontinfo stb_font = {};
+    uint8_t *mem_pool = nullptr;
+    stbtt_pool_t tlsf_pool = nullptr;
     const char *name = nullptr;
     static const constexpr char *TAG = "font_view";
 };
