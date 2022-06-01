@@ -93,7 +93,7 @@ public:
 
 
 public:
-    explicit font_view(const char *_name, bool _disable_cache = false)
+    explicit font_view(const char *_name, bool _disable_cache = true)
     {
         name = strdup(_name);
         disable_cache = _disable_cache;
