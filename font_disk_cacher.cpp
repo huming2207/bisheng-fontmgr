@@ -91,16 +91,17 @@ esp_err_t font_disk_cacher::add_bitmap(const char *font_name, uint8_t font_size,
     char combined_path[256] = { 0 };
 
     snprintf(combined_path, sizeof(combined_path), "%s/%s/%x/%x", base_path, font_name, font_size, codepoint);
+    ESP_LOGD(TAG, "Writing to %s", combined_path);
     combined_path[sizeof(combined_path) - 1] = '\0';
 
-    FILE *fp = fopen(combined_path, "wb");
+    FILE *fp = fopen(combined_path, "w");
     if (fp == nullptr) {
-        ESP_LOGE(TAG, "Failed to open path: %s", combined_path);
+        ESP_LOGD(TAG, "Failed to open path: %s, errno %d", combined_path, errno);
         return ESP_ERR_INVALID_STATE;
     }
 
     if (fwrite(buf, 1, len, fp) < len) {
-        ESP_LOGE(TAG, "Failed to write to buffer");
+        ESP_LOGD(TAG, "Failed to write to buffer");
         fclose(fp);
         return ESP_ERR_INVALID_STATE;
     }
@@ -121,10 +122,10 @@ esp_err_t font_disk_cacher::get_bitmap(const char *font_name, uint8_t font_size,
     FILE *fp = fopen(combined_path, "rb");
     if (fp == nullptr) {
         if (errno == ENOENT) {
-            ESP_LOGE(TAG, "Not found: %s", combined_path);
+            ESP_LOGD(TAG, "Not found: %s", combined_path);
             return ESP_ERR_NOT_FOUND;
         } else {
-            ESP_LOGE(TAG, "Failed to open path: %s", combined_path);
+            ESP_LOGD(TAG, "Failed to open path: %s", combined_path);
             return ESP_ERR_INVALID_STATE;
         }
     }
@@ -136,7 +137,7 @@ esp_err_t font_disk_cacher::get_bitmap(const char *font_name, uint8_t font_size,
     }
 
     if (fread(buf_out, 1, len, fp) < 1) {
-        ESP_LOGE(TAG, "Read op failed");
+        ESP_LOGD(TAG, "Read op failed");
         fclose(fp);
         return ESP_FAIL;
     }
