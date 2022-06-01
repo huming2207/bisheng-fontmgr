@@ -58,6 +58,8 @@ public:
         auto *ctx = (font_view *)font->user_data;
         float scale = ctx->scale;
 
+        ESP_LOGD(TAG, "Find glyph 0x%x, %p", unicode_letter, ctx->font_buf);
+
         if (ctx->disable_cache) {
             int width = 0, height = 0;
             if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
@@ -70,15 +72,20 @@ public:
             auto ret = cache.get_bitmap(ctx->name, ctx->height_px, unicode_letter, ctx->font_buf, (ctx->height_px * ctx->height_px), nullptr);
             int width = 0, height = 0;
             if (ret == ESP_OK) {
+                ESP_LOGD(TAG, "Cache match!");
                 return ctx->font_buf;
             } else if (ret == ESP_ERR_NOT_FOUND) {
+                ESP_LOGD(TAG, "Cache miss!");
                 if (stbtt_GetCodepointBitmapPtr(&ctx->stb_font, scale, scale, (int)unicode_letter, ctx->font_buf, &width, &height, nullptr, nullptr)) {
                     cache.add_bitmap(ctx->name, ctx->height_px, unicode_letter, ctx->font_buf, (ctx->height_px * ctx->height_px));
+                    ESP_LOGD(TAG, "Cache added!");
                     return ctx->font_buf;
                 } else {
+                    ESP_LOGD(TAG, "Codepoint not found!");
                     return nullptr;
                 }
             } else {
+                ESP_LOGD(TAG, "Something else screwed up");
                 return nullptr;
             }
         }
@@ -112,7 +119,7 @@ public:
             return ESP_FAIL;
         }
 
-        if (disable_cache) {
+        if (!disable_cache) {
             auto &cache = font_disk_cacher::instance();
             auto ret = cache.add_renderer(name, _height_px);
             if (ret != ESP_OK) {
