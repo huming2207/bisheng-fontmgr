@@ -4,14 +4,15 @@
 #include <esp_err.h>
 #include <esp_log.h>
 #include <lvgl.h>
+#include <esp_heap_caps.h>
 
-#include "stbtt_mempool.h" // Make sure this include is BEFORE stb_truetype
+#include "font_tlsf.h"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_truetype.h>
 
 #include "font_disk_cacher.hpp"
 
-#define STBTT_MEM_INCREMENT_SIZE (131072 * 2)
+#define STBTT_MEM_INCREMENT_SIZE (131072)
 
 class font_view
 {
@@ -94,6 +95,17 @@ public:
         }
     }
 
+    static void *stbtt_mem_alloc(size_t len, void *_ctx)
+    {
+        auto *ctx = (font_view *)(_ctx);
+        return stbtt_tlsf_malloc(ctx->tlsf, len);
+    }
+
+    static void stbtt_mem_free(void *ptr, void *_ctx)
+    {
+        auto *ctx = (font_view *)(_ctx);
+        return stbtt_tlsf_free(ctx->tlsf, ptr);
+    }
 
 public:
     explicit font_view(const char *_name, bool _disable_cache = true)
@@ -107,8 +119,8 @@ public:
         free((void *) name);
         free((void *) font_buf);
 
-        if (tlsf_pool != nullptr) {
-            stbtt_tlsf_remove_pool(stbtt_mem_tlsf, tlsf_pool);
+        if (tlsf != nullptr) {
+            stbtt_tlsf_destroy(tlsf);
         }
 
         if (mem_pool != nullptr) {
@@ -118,12 +130,6 @@ public:
 
     esp_err_t init(const uint8_t *buf, size_t len, uint8_t _height_px)
     {
-        auto ret = stbtt_mem_init();
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialise memory pool");
-            return ret;
-        }
-
         height_px = _height_px;
         lv_font.line_height = height_px;
         lv_font.get_glyph_dsc = get_glyph_dsc_handler;
@@ -132,6 +138,10 @@ public:
         lv_font.base_line = 0;
         lv_font.subpx = LV_FONT_SUBPX_NONE;
 
+        stb_font.userdata = this;
+        stb_font.heap_alloc_func = stbtt_mem_alloc;
+        stb_font.heap_free_func = stbtt_mem_free;
+
         if (stbtt_InitFont(&stb_font, buf, 0) < 1) {
             ESP_LOGE(TAG, "Load font failed");
             return ESP_FAIL;
@@ -139,7 +149,7 @@ public:
 
         if (!disable_cache) {
             auto &cache = font_disk_cacher::instance();
-            ret = cache.add_renderer(name, _height_px);
+            auto ret = cache.add_renderer(name, _height_px);
             if (ret != ESP_OK) {
                 ESP_LOGE(TAG, "Failed to create renderer cache namespace");
                 return ret;
@@ -161,8 +171,9 @@ public:
             ESP_LOGE(TAG, "Failed to allocate heap buffer");
             return ESP_ERR_NO_MEM;
         } else {
-            tlsf_pool = stbtt_tlsf_add_pool(stbtt_mem_tlsf, mem_pool, STBTT_MEM_INCREMENT_SIZE);
-            if (tlsf_pool == nullptr) {
+            ESP_LOGI(TAG, "Alloc size %zu, %zu, %zu", stbtt_tlsf_block_size_max(), stbtt_tlsf_size(), stbtt_tlsf_pool_overhead());
+            tlsf = stbtt_tlsf_create_with_pool(mem_pool, STBTT_MEM_INCREMENT_SIZE);
+            if (tlsf == nullptr) {
                 ESP_LOGE(TAG, "Heap pool add fail");
                 return ESP_ERR_NO_MEM;
             }
@@ -190,7 +201,9 @@ private:
     lv_font_t lv_font = {};
     stbtt_fontinfo stb_font = {};
     uint8_t *mem_pool = nullptr;
-    stbtt_pool_t tlsf_pool = nullptr;
     const char *name = nullptr;
     static const constexpr char *TAG = "font_view";
+
+public:
+    stbtt_tlsf_t tlsf = nullptr; // Workaround for circular dependency issue
 };
