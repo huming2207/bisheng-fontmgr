@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "tlsf.h"
+#include "font_tlsf.h"
 
 #if defined(__cplusplus)
 #define stbtt_tlsf_decl inline
