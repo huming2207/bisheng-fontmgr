@@ -12,7 +12,7 @@
 
 #include "font_disk_cacher.hpp"
 
-#define STBTT_MEM_INCREMENT_SIZE (131072)
+#define STBTT_MEM_INCREMENT_SIZE (98304)
 
 class font_view
 {
@@ -98,13 +98,36 @@ public:
     static void *stbtt_mem_alloc(size_t len, void *_ctx)
     {
         auto *ctx = (font_view *)(_ctx);
-        return stbtt_tlsf_malloc(ctx->tlsf, len);
+        if (!ctx->tlsf_inited || ctx->tlsf == nullptr) {
+            int64_t ts = esp_timer_get_time();
+            ctx->tlsf = stbtt_tlsf_create_with_pool(ctx->mem_pool, STBTT_MEM_INCREMENT_SIZE);
+            ESP_LOGW(TAG, "Took %lld", esp_timer_get_time() - ts);
+            if (ctx->tlsf == nullptr) {
+                ESP_LOGE(TAG, "Heap pool add fail");
+                return nullptr;
+            } else {
+                ctx->tlsf_inited = true;
+            }
+        }
+
+        auto *ret = stbtt_tlsf_malloc(ctx->tlsf, len);
+        if (ret != nullptr) ctx->used_mem += stbtt_tlsf_block_size(ret);
+        ESP_LOGD(TAG, "alloc: +%u; %u", len, ctx->used_mem);
+        return ret;
     }
 
     static void stbtt_mem_free(void *ptr, void *_ctx)
     {
         auto *ctx = (font_view *)(_ctx);
-        return stbtt_tlsf_free(ctx->tlsf, ptr);
+        auto size = stbtt_tlsf_block_size(ptr);
+        ctx->used_mem -= size;
+        ESP_LOGD(TAG, "free: -%u; %u", size, ctx->used_mem);
+        stbtt_tlsf_free(ctx->tlsf, ptr);
+
+        if (ctx->used_mem < 1) {
+            stbtt_tlsf_destroy(ctx->tlsf);
+            ctx->tlsf_inited = false;
+        }
     }
 
 public:
@@ -173,6 +196,7 @@ public:
         } else {
             ESP_LOGI(TAG, "Alloc size %zu, %zu, %zu", stbtt_tlsf_block_size_max(), stbtt_tlsf_size(), stbtt_tlsf_pool_overhead());
             tlsf = stbtt_tlsf_create_with_pool(mem_pool, STBTT_MEM_INCREMENT_SIZE);
+            tlsf_inited = true;
             if (tlsf == nullptr) {
                 ESP_LOGE(TAG, "Heap pool add fail");
                 return ESP_ERR_NO_MEM;
@@ -194,14 +218,19 @@ public:
     }
 
 private:
+    volatile bool tlsf_inited = false;
     uint8_t height_px = 0;
     bool disable_cache = false;
+
     uint8_t *font_buf = nullptr;
-    float scale = 0;
-    lv_font_t lv_font = {};
-    stbtt_fontinfo stb_font = {};
     uint8_t *mem_pool = nullptr;
     const char *name = nullptr;
+    uint32_t used_mem = 0; // For debugging only
+
+    float scale = 0;
+
+    lv_font_t lv_font = {};
+    stbtt_fontinfo stb_font = {};
     static const constexpr char *TAG = "font_view";
 
 public:
