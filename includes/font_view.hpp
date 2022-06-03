@@ -99,9 +99,7 @@ public:
     {
         auto *ctx = (font_view *)(_ctx);
         if (!ctx->tlsf_inited || ctx->tlsf == nullptr) {
-            int64_t ts = esp_timer_get_time();
             ctx->tlsf = stbtt_tlsf_create_with_pool(ctx->mem_pool, STBTT_MEM_INCREMENT_SIZE);
-            ESP_LOGW(TAG, "Took %lld", esp_timer_get_time() - ts);
             if (ctx->tlsf == nullptr) {
                 ESP_LOGE(TAG, "Heap pool add fail");
                 return nullptr;
