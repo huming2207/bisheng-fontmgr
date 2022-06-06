@@ -223,14 +223,12 @@ private:
     uint8_t *font_buf = nullptr;
     uint8_t *mem_pool = nullptr;
     const char *name = nullptr;
-    uint32_t used_mem = 0; // For debugging only
+    uint32_t used_mem = 0;
 
     float scale = 0;
 
     lv_font_t lv_font = {};
     stbtt_fontinfo stb_font = {};
     static const constexpr char *TAG = "font_view";
-
-public:
-    stbtt_tlsf_t tlsf = nullptr; // Workaround for circular dependency issue
+    stbtt_tlsf_t tlsf = nullptr;
 };
