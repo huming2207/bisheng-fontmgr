@@ -5,6 +5,7 @@
 #include <esp_log.h>
 #include <lvgl.h>
 #include <esp_heap_caps.h>
+#include <sys/unistd.h>
 
 #include "font_tlsf.h"
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -137,8 +138,13 @@ public:
 
     ~font_view()
     {
-        free((void *) name);
-        free((void *) font_buf);
+        if (name != nullptr) {
+            free((void *)name);
+        }
+
+        if (font_buf != nullptr) {
+            free((void *) font_buf);
+        }
 
         if (tlsf != nullptr) {
             stbtt_tlsf_destroy(tlsf);
@@ -147,11 +153,60 @@ public:
         if (mem_pool != nullptr) {
             free((void *) mem_pool);
         }
+
+        if (ttf_buf != nullptr) {
+            free(ttf_buf);
+        }
+    }
+
+    esp_err_t init(const char *file_path, uint8_t _height_px)
+    {
+        if (file_path == nullptr || _height_px < 1) {
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        if (access(file_path, F_OK) != 0) {
+            ESP_LOGE(TAG, "Font %s not found", file_path);
+            return ESP_ERR_NOT_FOUND;
+        }
+
+        FILE *fp = fopen(file_path, "rb");
+        if (fp == nullptr) {
+            ESP_LOGE(TAG, "Failed to open font %s", file_path);
+            return ESP_ERR_INVALID_STATE;
+        }
+
+        fseek(fp, 0, SEEK_END);
+        size_t len = ftell(fp);
+        if (len < 1) {
+            ESP_LOGE(TAG, "Invalid length for font %s; %zu", file_path, len);
+            fclose(fp);
+            return ESP_ERR_INVALID_SIZE;
+        }
+
+        ttf_buf = static_cast<uint8_t *>(heap_caps_malloc_prefer(len, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL));
+        if (ttf_buf == nullptr) {
+            ESP_LOGE(TAG, "Failed to alloc TTF buf");
+            fclose(fp);
+            return ESP_ERR_NO_MEM;
+        }
+
+        rewind(fp);
+        if (fread(ttf_buf, 1, len, fp) != len) {
+            ESP_LOGE(TAG, "TTF read length mismatch");
+            fclose(fp);
+            free(ttf_buf);
+            return ESP_ERR_NO_MEM;
+        }
+
+        fclose(fp);
+        return init(ttf_buf, len, _height_px);
     }
 
     esp_err_t init(const uint8_t *buf, size_t len, uint8_t _height_px)
     {
         height_px = _height_px;
+        ttf_len = len;
         lv_font.line_height = height_px;
         lv_font.get_glyph_dsc = get_glyph_dsc_handler;
         lv_font.get_glyph_bitmap = get_glyph_bitmap_handler;
@@ -220,6 +275,8 @@ private:
     uint8_t height_px = 0;
     bool disable_cache = false;
 
+    uint8_t *ttf_buf = nullptr;
+    size_t ttf_len = 0;
     uint8_t *font_buf = nullptr;
     uint8_t *mem_pool = nullptr;
     const char *name = nullptr;
