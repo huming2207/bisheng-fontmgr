@@ -270,6 +270,16 @@ public:
         return ESP_OK;
     }
 
+    esp_err_t decorate_font_obj(lv_obj_t *obj)
+    {
+        if (obj == nullptr) {
+            return ESP_ERR_INVALID_ARG;
+        }
+
+        lv_obj_set_style_text_font(obj, &lv_font, 0);
+        return ESP_OK;
+    }
+
 private:
     volatile bool tlsf_inited = false;
     uint8_t height_px = 0;
