@@ -31,8 +31,7 @@ bool font_view::get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t
     int x0 = 0, y0 = 0, x1 = 0, y1 = 0;
     stbtt_GetCodepointBitmapBox(&ctx->stb_font, (int)unicode_letter, scale, scale, &x0, &y0, &x1, &y1);
 
-    int adv_w = 0;
-    int left_side_bearing = 0;
+    int adv_w = 0, left_side_bearing = 0;
     stbtt_GetCodepointHMetrics(&ctx->stb_font, (int)unicode_letter, &adv_w, &left_side_bearing);
 
     int kern = stbtt_GetCodepointKernAdvance(&ctx->stb_font, (int)unicode_letter, (int)unicode_letter_next);
@@ -43,9 +42,9 @@ bool font_view::get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t
     dsc_out->adv_w = adv_w + kern;
     dsc_out->box_h = (uint16_t)(y1 - y0);
     dsc_out->box_w = (uint16_t)(x1 - x0);
-    dsc_out->ofs_x = (int16_t)left_side_bearing;
+    dsc_out->ofs_x = (int16_t)((float)left_side_bearing * scale);
     dsc_out->ofs_y = (int16_t)(y1 * -1);
-    dsc_out->bpp = 8;
+    dsc_out->bpp   = 8;
     return true;
 }
 
@@ -147,6 +146,11 @@ esp_err_t font_view::init(const uint8_t *buf, size_t len, uint8_t _height_px)
     }
 
     scale = stbtt_ScaleForPixelHeight(&stb_font, height_px);
+
+    int asc = 0, dsc = 0, line_gap = 0;
+    stbtt_GetFontVMetrics(&stb_font, &asc, &dsc, &line_gap);
+    lv_font.base_line = (lv_coord_t)((float)dsc * -scale);
+
     return ESP_OK;
 }
 
@@ -154,11 +158,6 @@ esp_err_t font_view::init(const char *file_path, uint8_t _height_px)
 {
     if (file_path == nullptr || _height_px < 1) {
         return ESP_ERR_INVALID_ARG;
-    }
-
-    if (access(file_path, F_OK) != 0) {
-        ESP_LOGE(TAG, "Font %s not found", file_path);
-        return ESP_ERR_NOT_FOUND;
     }
 
     FILE *fp = fopen(file_path, "rb");
@@ -175,7 +174,7 @@ esp_err_t font_view::init(const char *file_path, uint8_t _height_px)
         return ESP_ERR_INVALID_SIZE;
     }
 
-    ttf_buf = static_cast<uint8_t *>(heap_caps_malloc_prefer(len, MALLOC_CAP_SPIRAM, MALLOC_CAP_INTERNAL));
+    ttf_buf = static_cast<uint8_t *>(heap_caps_malloc(len, MALLOC_CAP_SPIRAM));
     if (ttf_buf == nullptr) {
         ESP_LOGE(TAG, "Failed to alloc TTF buf");
         fclose(fp);
