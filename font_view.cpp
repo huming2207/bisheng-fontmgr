@@ -1,5 +1,8 @@
 #include <cmath>
 #include <cstdint>
+
+#include <multi_heap.h>
+
 #include <font_view.hpp>
 
 #define STB_TRUETYPE_IMPLEMENTATION
@@ -136,10 +139,9 @@ esp_err_t font_view::init(const uint8_t *buf, size_t len, uint8_t _height_px)
         ESP_LOGE(TAG, "Failed to allocate heap buffer");
         return ESP_ERR_NO_MEM;
     } else {
-        ESP_LOGI(TAG, "Alloc size %zu, %zu, %zu", stbtt_tlsf_block_size_max(), stbtt_tlsf_size(), stbtt_tlsf_pool_overhead());
-        tlsf = stbtt_tlsf_create_with_pool(mem_pool, STBTT_MEM_INCREMENT_SIZE);
+        heap = multi_heap_register(mem_pool, STBTT_MEM_INCREMENT_SIZE);
         tlsf_inited = true;
-        if (tlsf == nullptr) {
+        if (heap == nullptr) {
             ESP_LOGE(TAG, "Heap pool add fail");
             return ESP_ERR_NO_MEM;
         }
@@ -196,9 +198,10 @@ esp_err_t font_view::init(const char *file_path, uint8_t _height_px)
 void *font_view::stbtt_mem_alloc(size_t len, void *_ctx)
 {
     auto *ctx = (font_view *)(_ctx);
-    if (!ctx->tlsf_inited || ctx->tlsf == nullptr) {
-        ctx->tlsf = stbtt_tlsf_create_with_pool(ctx->mem_pool, STBTT_MEM_INCREMENT_SIZE);
-        if (ctx->tlsf == nullptr) {
+    if (!ctx->tlsf_inited || ctx->heap == nullptr) {
+        memset(ctx->mem_pool, 0, STBTT_MEM_INCREMENT_SIZE);
+        ctx->heap = multi_heap_register(ctx->mem_pool, STBTT_MEM_INCREMENT_SIZE);
+        if (ctx->heap == nullptr) {
             ESP_LOGE(TAG, "Heap pool add fail");
             return nullptr;
         } else {
@@ -206,8 +209,8 @@ void *font_view::stbtt_mem_alloc(size_t len, void *_ctx)
         }
     }
 
-    auto *ret = stbtt_tlsf_malloc(ctx->tlsf, len);
-    if (ret != nullptr) ctx->used_mem += stbtt_tlsf_block_size(ret);
+    auto *ret = multi_heap_malloc(ctx->heap, len);
+    if (ret != nullptr) ctx->used_mem += multi_heap_get_allocated_size(ctx->heap, ret);
     ESP_LOGD(TAG, "alloc: +%u; %u", len, ctx->used_mem);
     return ret;
 }
@@ -215,13 +218,12 @@ void *font_view::stbtt_mem_alloc(size_t len, void *_ctx)
 void font_view::stbtt_mem_free(void *ptr, void *_ctx)
 {
     auto *ctx = (font_view *)(_ctx);
-    auto size = stbtt_tlsf_block_size(ptr);
+    auto size = multi_heap_get_allocated_size(ctx->heap, ptr);
     ctx->used_mem -= size;
     ESP_LOGD(TAG, "free: -%u; %u", size, ctx->used_mem);
-    stbtt_tlsf_free(ctx->tlsf, ptr);
+    multi_heap_free(ctx->heap, ptr);
 
     if (ctx->used_mem < 1) {
-        stbtt_tlsf_destroy(ctx->tlsf);
         ctx->tlsf_inited = false;
     }
 }
@@ -236,8 +238,8 @@ font_view::~font_view()
         free((void *) font_buf);
     }
 
-    if (tlsf != nullptr) {
-        stbtt_tlsf_destroy(tlsf);
+    if (heap != nullptr) {
+        heap = nullptr;
     }
 
     if (mem_pool != nullptr) {

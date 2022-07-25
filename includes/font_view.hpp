@@ -6,7 +6,6 @@
 #include <esp_heap_caps.h>
 #include <sys/unistd.h>
 
-#include "font_tlsf.h"
 #include <stb_truetype.h>
 
 #include "font_disk_cacher.hpp"
@@ -45,5 +44,5 @@ private:
     lv_font_t lv_font = {};
     stbtt_fontinfo stb_font = {};
     static const constexpr char *TAG = "font_view";
-    void *tlsf = nullptr;
+    multi_heap_handle_t heap = nullptr;
 };
