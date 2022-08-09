@@ -60,7 +60,7 @@ const uint8_t *font_view::get_glyph_bitmap_handler(const lv_font_t *font, uint32
     auto *ctx = (font_view *)font->user_data;
     float scale = ctx->scale;
 
-    ESP_LOGD(TAG, "Find glyph 0x%x, %p", unicode_letter, ctx->font_buf);
+    ESP_LOGD(TAG, "Find glyph 0x%lx, %p", unicode_letter, ctx->font_buf);
 
     if (ctx->disable_cache) {
         int width = 0, height = 0;
@@ -211,7 +211,7 @@ void *font_view::stbtt_mem_alloc(size_t len, void *_ctx)
 
     auto *ret = multi_heap_malloc(ctx->heap, len);
     if (ret != nullptr) ctx->used_mem += multi_heap_get_allocated_size(ctx->heap, ret);
-    ESP_LOGD(TAG, "alloc: +%u; %u", len, ctx->used_mem);
+    ESP_LOGD(TAG, "alloc: +%u; %lu", len, ctx->used_mem);
     return ret;
 }
 
@@ -220,7 +220,7 @@ void font_view::stbtt_mem_free(void *ptr, void *_ctx)
     auto *ctx = (font_view *)(_ctx);
     auto size = multi_heap_get_allocated_size(ctx->heap, ptr);
     ctx->used_mem -= size;
-    ESP_LOGD(TAG, "free: -%u; %u", size, ctx->used_mem);
+    ESP_LOGD(TAG, "free: -%u; %lu", size, ctx->used_mem);
     multi_heap_free(ctx->heap, ptr);
 
     if (ctx->used_mem < 1) {

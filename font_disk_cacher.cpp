@@ -90,7 +90,7 @@ esp_err_t font_disk_cacher::add_bitmap(const char *font_name, uint8_t font_size,
 
     char combined_path[256] = { 0 };
 
-    snprintf(combined_path, sizeof(combined_path), "%s/%s/%x/%x", base_path, font_name, font_size, codepoint);
+    snprintf(combined_path, sizeof(combined_path), "%s/%s/%x/%lx", base_path, font_name, font_size, codepoint);
     ESP_LOGD(TAG, "Writing to %s", combined_path);
     combined_path[sizeof(combined_path) - 1] = '\0';
 
@@ -116,7 +116,7 @@ esp_err_t font_disk_cacher::get_bitmap(const char *font_name, uint8_t font_size,
 {
     char combined_path[256] = { 0 };
 
-    snprintf(combined_path, sizeof(combined_path), "%s/%s/%x/%x", base_path, font_name, font_size, codepoint);
+    snprintf(combined_path, sizeof(combined_path), "%s/%s/%x/%lx", base_path, font_name, font_size, codepoint);
     combined_path[sizeof(combined_path) - 1] = '\0';
 
     FILE *fp = fopen(combined_path, "rb");
