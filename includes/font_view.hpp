@@ -24,6 +24,7 @@ public:
 
     esp_err_t decorate_font_style(lv_style_t *style);
     esp_err_t decorate_font_obj(lv_obj_t *obj);
+    const char *get_name();
     esp_err_t init(const char *file_path, uint8_t _height_px);
     esp_err_t init(const uint8_t *buf, size_t len, uint8_t _height_px);
 

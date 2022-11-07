@@ -271,3 +271,8 @@ esp_err_t font_view::decorate_font_obj(lv_obj_t *obj)
     return ESP_OK;
 }
 
+const char *font_view::get_name()
+{
+    return name;
+}
+
