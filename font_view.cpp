@@ -22,6 +22,19 @@ bool font_view::get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t
         return false;
     }
 
+    if(unicode_letter < 0x20 ||
+       unicode_letter == 0xf8ff || /*LV_SYMBOL_DUMMY*/
+       unicode_letter == 0x200c) { /*ZERO WIDTH NON-JOINER*/
+        dsc_out->box_w = 0;
+        dsc_out->adv_w = 0;
+        dsc_out->box_h = 0;                                /*height of the bitmap in [px]*/
+        dsc_out->ofs_x = 0;                                           /*X offset of the bitmap in [pf]*/
+        dsc_out->ofs_y = 0;                                           /*Y offset of the bitmap in [pf]*/
+        dsc_out->bpp = 0;
+        dsc_out->is_placeholder = false;
+        return true;
+    }
+
     auto *ctx = (font_view *)font->user_data;
 
     if (dsc_out == nullptr) return false;
@@ -38,14 +51,11 @@ bool font_view::get_glyph_dsc_handler(const lv_font_t *font, lv_font_glyph_dsc_t
     stbtt_GetCodepointHMetrics(&ctx->stb_font, (int)unicode_letter, &adv_w, &left_side_bearing);
 
     int kern = stbtt_GetCodepointKernAdvance(&ctx->stb_font, (int)unicode_letter, (int)unicode_letter_next);
-    adv_w = (int)(roundf((float)adv_w * scale));
-    kern = (int)(roundf((float)kern * scale));
-    left_side_bearing = (int)(roundf(((float)left_side_bearing * scale)));
 
-    dsc_out->adv_w = adv_w + kern;
+    dsc_out->adv_w = (uint16_t)(floor((((float)adv_w + (float)kern) * scale) + 0.5f));
     dsc_out->box_h = (uint16_t)(y1 - y0);
     dsc_out->box_w = (uint16_t)(x1 - x0);
-    dsc_out->ofs_x = (int16_t)((float)left_side_bearing * scale);
+    dsc_out->ofs_x = (int16_t)x0;
     dsc_out->ofs_y = (int16_t)(y1 * -1);
     dsc_out->bpp   = 8;
     return true;
